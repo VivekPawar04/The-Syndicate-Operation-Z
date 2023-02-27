@@ -1,0 +1,86 @@
+public class ZombieAI : MonoBehaviour
+{
+    public float detectionRadius = 10f;
+    public float attackRange = 2f;
+    public float attackInterval = 2f;
+    public float moveSpeed = 3f;
+
+    private NavMeshAgent navMeshAgent;
+    private Animator animator;
+    private Transform player;
+    private float lastAttackTime = 0f;
+
+    private void Start()
+    {
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
+        player = GameObject.FindGameObjectWithTag("Player").transform;
+    }
+
+    private void Update()
+    {
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        bool playerInSight = CanSeePlayer();
+
+        if (playerInSight && distanceToPlayer > attackRange)
+        {
+            navMeshAgent.SetDestination(player.position);
+            navMeshAgent.speed = moveSpeed;
+            animator.SetBool("isMoving", true);
+            animator.SetBool("isAttacking", false);
+        }
+        else if (playerInSight && distanceToPlayer <= attackRange)
+        {
+            navMeshAgent.SetDestination(transform.position);
+            navMeshAgent.speed = 0f;
+            animator.SetBool("isMoving", false);
+
+            if (Time.time - lastAttackTime > attackInterval)
+            {
+                Attack();
+                lastAttackTime = Time.time;
+            }
+        }
+        else
+        {
+            RandomWander();
+        }
+    }
+
+    private bool CanSeePlayer()
+    {
+        RaycastHit hit;
+        Vector3 direction = player.position - transform.position;
+
+        if (Physics.Raycast(transform.position, direction, out hit, detectionRadius))
+        {
+            if (hit.collider.CompareTag("Player"))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void RandomWander()
+    {
+        if (!navMeshAgent.hasPath)
+        {
+            Vector3 randomDirection = Random.insideUnitSphere * 10f;
+            randomDirection += transform.position;
+            NavMeshHit hit;
+            NavMesh.SamplePosition(randomDirection, out hit, 10f, NavMesh.AllAreas);
+            navMeshAgent.SetDestination(hit.position);
+            animator.SetBool("isMoving", true);
+            animator.SetBool("isAttacking", false);
+        }
+    }
+
+    private void Attack()
+    {
+        animator.SetBool("isMoving", false);
+        animator.SetBool("isAttacking", true);
+        player.GetComponent<PlayerHealth>().TakeDamage(10);
+    }
+}
