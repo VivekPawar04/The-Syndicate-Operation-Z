@@ -12,8 +12,8 @@ public class PlayerMovement : MonoBehaviour
     public Vector2 sensitivity = new Vector2(2f, 2f);
     [Tooltip("Smoothing of the mouse movement (Try with and without)")]
     public Vector2 smoothing = new Vector2(1.5f, 1.5f);
-    [Tooltip("Needs to be the same name as your main cam")]
-    public string cameraName = "Camera";
+    //[Tooltip("Needs to be the same name as your main cam")]
+    //public string cameraName = "Camera";
 
     //----------------------------------------------------
     [Space]
@@ -89,18 +89,27 @@ public class PlayerMovement : MonoBehaviour
     //----------------------------------------------------
     // Reference vars (These are the vars used in calculations, they don't need to be set by the user)
     private Rigidbody rb;
-    private GameObject cam;
+    //private GameObject cam;
     Vector3 input = new Vector3();
     Vector2 _mouseAbsolute, _smoothMouse, targetDirection, targetCharacterDirection;
     private float coyoteTimeCounter, jumpBufferCounter, startJumpTime, endJumpTime;
     private bool wantingToJump = false, wantingToCrouch = false, wantingToSprint = false, jumpCooldownOver = true;
 
+    //--------------------------------------------------
+    // Animation variables
+    private int walkAnim = Animator.StringToHash("walking");
+    private int jumpAnim = Animator.StringToHash("jump");
+    private int sprintAnim = Animator.StringToHash("running");
+    private Animator animator;
+
     void Awake()
     {
+        //set animator to variable
+        animator = gameObject.GetComponent<Animator>();
         // Just set rb to the rigidbody of the gameobject containing this script
         rb = gameObject.GetComponent<Rigidbody>();
         // Try find our camera amongst the child objects
-        cam = gameObject.transform.Find(cameraName).gameObject;
+        //cam = gameObject.transform.Find(cameraName).gameObject;
         // Set the currentSpeed to walking as no keys should be pressed yet
         currentSpeed = walkMoveSpeed;
 
@@ -126,9 +135,34 @@ public class PlayerMovement : MonoBehaviour
         // Sprint key
         wantingToSprint = Input.GetKey(sprint);
 
+        //Update Animations
+        AnimationUpdate();
+
         // Mouse lock toggle (KeyDown only fires once)
         if (Input.GetKeyDown(lockToggle))
             lockCursor = !lockCursor;
+    }
+
+    public void AnimationUpdate()
+    {
+        //if wasd is pressed play walk animation
+        if(input.magnitude!=0)
+        {
+            animator.SetBool(walkAnim,true);
+        }
+        else
+        {
+            animator.SetBool(walkAnim, false);
+        }
+
+        //jump animation
+        if(wantingToJump)
+        {
+            animator.SetTrigger(jumpAnim);
+        }
+
+        //sprint animation
+        animator.SetBool(sprintAnim, wantingToSprint);
     }
 
     public void cameraUpdate()
@@ -158,11 +192,12 @@ public class PlayerMovement : MonoBehaviour
         if (clampInDegrees.y < 360)
             _mouseAbsolute.y = Mathf.Clamp(_mouseAbsolute.y, -clampInDegrees.y * 0.5f, clampInDegrees.y * 0.5f);
 
-        cam.transform.localRotation = Quaternion.AngleAxis(-_mouseAbsolute.y, targetOrientation * Vector3.right) * targetOrientation;
+        //cam.transform.localRotation = Quaternion.AngleAxis(-_mouseAbsolute.y, targetOrientation * Vector3.right) * targetOrientation;
 
         var yRotation = Quaternion.AngleAxis(_mouseAbsolute.x, Vector3.up);
         transform.localRotation = yRotation * targetCharacterOrientation;
     }
+
 
     void FixedUpdate()
     {
